@@ -33,10 +33,10 @@
             white-space: nowrap;
             opacity: 0;
             transform: translate(-50%, -50%);
-            /* Мягкое размытие как на фото */
+            /* Лёгкое размытие и свечение как на видео */
             text-shadow: 0 0 4px rgba(255, 0, 0, 0.9), 0 0 10px rgba(255, 0, 0, 0.4);
-            filter: blur(0.5px);
-            transition: opacity 0.5s ease-in-out;
+            filter: blur(0.6px);
+            transition: opacity 0.4s ease-in-out;
         }
 
         /* Белая надпись */
@@ -50,7 +50,6 @@
             text-align: center;
             white-space: nowrap;
             z-index: 100;
-            /* Белое свечение + лёгкое размытие */
             text-shadow: 0 0 12px rgba(255, 255, 255, 0.8), 0 0 25px rgba(255, 255, 255, 0.4);
             filter: blur(0.8px);
             transition: opacity 1.5s ease-in-out;
@@ -89,7 +88,7 @@
         let minY = Infinity, maxY = -Infinity;
 
         // Заполняем всю площадь сердца
-        const step = 16; 
+        const step = 22; 
         for (let y = 0; y < height; y += step) {
             for (let x = 0; x < width; x += step) {
                 let px = x + (Math.random() - 0.5) * step;
@@ -106,18 +105,22 @@
             }
         }
 
-        // Центр сердца
         const heartCenterX = (minX + maxX) / 2;
         const heartCenterY = (minY + maxY) / 2;
 
-        // Сортируем точки по углу — надписи появляются последовательно по кругу
+        // Сортируем точки по спирали от центра — так надписи будут появляться волной
         points.sort((a, b) => {
+            const distA = Math.hypot(a.x - heartCenterX, a.y - heartCenterY);
+            const distB = Math.hypot(b.x - heartCenterX, b.y - heartCenterY);
             const angleA = Math.atan2(a.y - heartCenterY, a.x - heartCenterX);
             const angleB = Math.atan2(b.y - heartCenterY, b.x - heartCenterX);
+            
+            // Сначала по расстоянию от центра, потом по углу
+            if (Math.abs(distA - distB) > 10) return distA - distB;
             return angleA - angleB;
         });
 
-        // Создаём надписи
+        // Создаём надписи с задержкой появления по очереди
         points.forEach((p, index) => {
             const span = document.createElement('span');
             span.className = 'small-text';
@@ -126,15 +129,15 @@
             span.style.left = p.x + 'px';
             span.style.top = p.y + 'px';
 
-            // Задержка появления: волна по кругу
-            const delay = index * 0.01; 
+            // Каждая надпись появляется чуть позже предыдущей
+            const delay = index * 0.04; 
             span.style.transitionDelay = delay + 's';
 
             container.appendChild(span);
             elements.push(span);
         });
 
-        // Позиция белой надписи — чуть выше центра сердца
+        // Белая надпись — чуть выше центра сердца
         centerTextEl.style.left = heartCenterX + 'px';
         centerTextEl.style.top = (heartCenterY - 45) + 'px';
 
