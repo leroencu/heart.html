@@ -69,57 +69,44 @@
         const centerY = height / 2;
         const scale = Math.min(width, height) / 24;
 
+        const elements = [];
         const points = [];
 
-        // Проверка, находится ли точка внутри сердца
-        function isInsideHeart(x, y) {
-            let nx = (x - centerX) / scale;
-            let ny = -(y - centerY) / scale;
-            let a = nx * nx + ny * ny - 1;
-            let formula = a * a * a - nx * nx * ny * ny * ny;
-            return formula <= 0;
+        // Количество точек по контуру
+        const totalPoints = 300;
+
+        // Проходим по контуру сердца по формуле
+        for (let i = 0; i < totalPoints; i++) {
+            // t от 0 до 2PI — полный обход контура
+            let t = (i / totalPoints) * Math.PI * 2;
+            
+            // Формула сердца (контур)
+            let x = 16 * Math.pow(Math.sin(t), 3);
+            let y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+
+            // Позиция на экране
+            let posX = centerX + x * scale;
+            let posY = centerY - y * scale;
+
+            points.push({ x: posX, y: posY });
         }
 
-        let minX = Infinity, maxX = -Infinity;
-        let minY = Infinity, maxY = -Infinity;
+        // Сортируем точки так, чтобы обход начинался с верхней точки и шёл по контуру
+        // Найдём верхнюю точку (минимальный Y) и отсортируем по углу от неё
+        const topPointIndex = points.reduce((minIdx, p, idx, arr) => 
+            p.y < arr[minIdx].y ? idx : minIdx, 0);
 
-        // Заполняем всё пространство сердца
-        const step = 22; 
-        for (let y = 0; y < height; y += step) {
-            for (let x = 0; x < width; x += step) {
-                let px = x + (Math.random() - 0.5) * step;
-                let py = y + (Math.random() - 0.5) * step;
-
-                if (isInsideHeart(px, py)) {
-                    points.push({ x: px, y: py });
-                    
-                    if (px < minX) minX = px;
-                    if (px > maxX) maxX = px;
-                    if (py < minY) minY = py;
-                    if (py > maxY) maxY = py;
-                }
-            }
-        }
-
-        const heartCenterX = (minX + maxX) / 2;
-        const heartCenterY = (minY + maxY) / 2;
-
-        // Сортировка: начинаем СВЕРХУ и идём ВНИЗ (как на первом фото)
-        points.sort((a, b) => {
-            // Сначала по Y (сверху вниз)
-            if (Math.abs(a.y - b.y) > 5) return a.y - b.y;
-            // Затем по X (слева направо)
-            return a.x - b.x;
-        });
+        // Переставляем массив, начиная с верхней точки
+        const sortedPoints = [
+            ...points.slice(topPointIndex),
+            ...points.slice(0, topPointIndex)
+        ];
 
         // Создаём надписи с задержкой появления
-        const totalPoints = points.length;
-        const totalTime = 15000; // 15 секунд на появление всех
-        const delayPerPoint = totalTime / totalPoints;
+        const totalTime = 15000; // 15 секунд на обход всего контура
+        const delayPerPoint = totalTime / sortedPoints.length;
 
-        const elements = [];
-
-        points.forEach((p, index) => {
+        sortedPoints.forEach((p, index) => {
             const span = document.createElement('span');
             span.className = 'small-text';
             span.innerText = 'I love you';
@@ -127,7 +114,7 @@
             span.style.left = p.x + 'px';
             span.style.top = p.y + 'px';
 
-            // Задержка зависит от порядкового номера
+            // Задержка появления по очереди
             const delay = index * (delayPerPoint / 1000);
             span.style.transitionDelay = delay + 's';
 
@@ -135,11 +122,14 @@
             elements.push(span);
         });
 
-        // Белая надпись — чуть выше центра сердца
-        centerTextEl.style.left = heartCenterX + 'px';
-        centerTextEl.style.top = (heartCenterY - 45) + 'px';
+        // Центр сердца (для белой надписи)
+        const heartCenterX = centerX;
+        const heartCenterY = centerY - 20;
 
-        // Запуск появления
+        centerTextEl.style.left = heartCenterX + 'px';
+        centerTextEl.style.top = heartCenterY + 'px';
+
+        // Запуск появления красных надписей
         setTimeout(() => {
             elements.forEach(el => {
                 el.style.opacity = '1';
