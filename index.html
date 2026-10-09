@@ -17,12 +17,14 @@
             height: 100vh;
             font-family: 'Arial', sans-serif;
         }
+
         #canvas-container {
             position: relative;
             width: 100%;
             height: 100%;
-            filter: blur(0.4px);
         }
+
+        /* Красные надписи */
         .small-text {
             position: absolute;
             color: #ff1a1a;
@@ -31,77 +33,119 @@
             white-space: nowrap;
             opacity: 0;
             transform: translate(-50%, -50%);
-            text-shadow: 0 0 5px rgba(255, 0, 0, 0.8), 0 0 10px rgba(255, 0, 0, 0.4);
-            transition: opacity 0.8s ease-in-out;
+            /* Мягкое размытие как на фото */
+            text-shadow: 0 0 4px rgba(255, 0, 0, 0.9), 0 0 10px rgba(255, 0, 0, 0.4);
+            filter: blur(0.5px);
+            transition: opacity 0.5s ease-in-out;
         }
+
+        /* Белая надпись */
         .center-text {
             position: absolute;
             transform: translate(-50%, -50%);
-            font-size: 70px;
+            font-size: 75px;
             font-weight: 900;
             color: #ffffff;
             opacity: 0;
             text-align: center;
             white-space: nowrap;
             z-index: 100;
-            text-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
+            /* Белое свечение + лёгкое размытие */
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.8), 0 0 25px rgba(255, 255, 255, 0.4);
+            filter: blur(0.8px);
             transition: opacity 1.5s ease-in-out;
         }
     </style>
 </head>
 <body>
+
     <div id="canvas-container">
         <div id="center-text" class="center-text">I love you</div>
     </div>
+
     <script>
         const container = document.getElementById('canvas-container');
         const centerTextEl = document.getElementById('center-text');
+
         const width = window.innerWidth;
         const height = window.innerHeight;
         const centerX = width / 2;
         const centerY = height / 2;
-        const scale = Math.min(width, height) / 22;
+        const scale = Math.min(width, height) / 24;
+
         const elements = [];
-        const totalPoints = 250;
-        const copiesPerPoint = 2;
+        const points = [];
+
+        // Проверка: находится ли точка внутри сердца
+        function isInsideHeart(x, y) {
+            let nx = (x - centerX) / scale;
+            let ny = -(y - centerY) / scale;
+            let a = nx * nx + ny * ny - 1;
+            let formula = a * a * a - nx * nx * ny * ny * ny;
+            return formula <= 0;
+        }
+
         let minX = Infinity, maxX = -Infinity;
         let minY = Infinity, maxY = -Infinity;
-        for (let i = 0; i < totalPoints; i++) {
-            let t = (i / totalPoints) * Math.PI * 2;          
-            let x = 16 * Math.pow(Math.sin(t), 3);
-            let y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-            let baseX = centerX + x * scale;
-            let baseY = centerY - y * scale;
-            if (baseX < minX) minX = baseX;
-            if (baseX > maxX) maxX = baseX;
-            if (baseY < minY) minY = baseY;
-            if (baseY > maxY) maxY = baseY;
-            for (let j = 0; j < copiesPerPoint; j++) {
-                let offsetAlong = (j - copiesPerPoint / 2) * 8; 
-                let randomOffsetX = (Math.random() - 0.5) * 12;
-                let randomOffsetY = (Math.random() - 0.5) * 12;
-                let posX = baseX + offsetAlong + randomOffsetX;
-                let posY = baseY + randomOffsetY;
-                const span = document.createElement('span');
-                span.className = 'small-text';
-                span.innerText = 'I love you';
-                span.style.left = posX + 'px';
-                span.style.top = posY + 'px';
-                const delay = Math.random() * 1.2;
-                span.style.transitionDelay = delay + 's';
-                container.appendChild(span);
-                elements.push(span);
+
+        // Заполняем всю площадь сердца
+        const step = 16; 
+        for (let y = 0; y < height; y += step) {
+            for (let x = 0; x < width; x += step) {
+                let px = x + (Math.random() - 0.5) * step;
+                let py = y + (Math.random() - 0.5) * step;
+
+                if (isInsideHeart(px, py)) {
+                    points.push({ x: px, y: py });
+                    
+                    if (px < minX) minX = px;
+                    if (px > maxX) maxX = px;
+                    if (py < minY) minY = py;
+                    if (py > maxY) maxY = py;
+                }
             }
         }
+
+        // Центр сердца
         const heartCenterX = (minX + maxX) / 2;
         const heartCenterY = (minY + maxY) / 2;
+
+        // Сортируем точки по углу — надписи появляются последовательно по кругу
+        points.sort((a, b) => {
+            const angleA = Math.atan2(a.y - heartCenterY, a.x - heartCenterX);
+            const angleB = Math.atan2(b.y - heartCenterY, b.x - heartCenterX);
+            return angleA - angleB;
+        });
+
+        // Создаём надписи
+        points.forEach((p, index) => {
+            const span = document.createElement('span');
+            span.className = 'small-text';
+            span.innerText = 'I love you';
+
+            span.style.left = p.x + 'px';
+            span.style.top = p.y + 'px';
+
+            // Задержка появления: волна по кругу
+            const delay = index * 0.01; 
+            span.style.transitionDelay = delay + 's';
+
+            container.appendChild(span);
+            elements.push(span);
+        });
+
+        // Позиция белой надписи — чуть выше центра сердца
         centerTextEl.style.left = heartCenterX + 'px';
-        centerTextEl.style.top = (heartCenterY + 15) + 'px';
+        centerTextEl.style.top = (heartCenterY - 45) + 'px';
+
+        // Запуск появления красных надписей
         setTimeout(() => {
             elements.forEach(el => {
                 el.style.opacity = '1';
             });
         }, 100);
+
+        // Через 15 секунд появляется белая надпись
         setTimeout(() => {
             centerTextEl.style.opacity = '1';
         }, 15000);
