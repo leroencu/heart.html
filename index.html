@@ -24,7 +24,6 @@
             height: 100%;
         }
 
-        /* Красные надписи */
         .small-text {
             position: absolute;
             color: #ff1a1a;
@@ -33,13 +32,11 @@
             white-space: nowrap;
             opacity: 0;
             transform: translate(-50%, -50%);
-            /* Лёгкое размытие и свечение как на видео */
             text-shadow: 0 0 4px rgba(255, 0, 0, 0.9), 0 0 10px rgba(255, 0, 0, 0.4);
             filter: blur(0.6px);
-            transition: opacity 0.4s ease-in-out;
+            transition: opacity 0.3s ease-in-out;
         }
 
-        /* Белая надпись */
         .center-text {
             position: absolute;
             transform: translate(-50%, -50%);
@@ -72,10 +69,9 @@
         const centerY = height / 2;
         const scale = Math.min(width, height) / 24;
 
-        const elements = [];
         const points = [];
 
-        // Проверка: находится ли точка внутри сердца
+        // Проверка, находится ли точка внутри сердца
         function isInsideHeart(x, y) {
             let nx = (x - centerX) / scale;
             let ny = -(y - centerY) / scale;
@@ -87,7 +83,7 @@
         let minX = Infinity, maxX = -Infinity;
         let minY = Infinity, maxY = -Infinity;
 
-        // Заполняем всю площадь сердца
+        // Заполняем всё пространство сердца
         const step = 22; 
         for (let y = 0; y < height; y += step) {
             for (let x = 0; x < width; x += step) {
@@ -108,19 +104,21 @@
         const heartCenterX = (minX + maxX) / 2;
         const heartCenterY = (minY + maxY) / 2;
 
-        // Сортируем точки по спирали от центра — так надписи будут появляться волной
+        // Сортировка: начинаем СВЕРХУ и идём ВНИЗ (как на первом фото)
         points.sort((a, b) => {
-            const distA = Math.hypot(a.x - heartCenterX, a.y - heartCenterY);
-            const distB = Math.hypot(b.x - heartCenterX, b.y - heartCenterY);
-            const angleA = Math.atan2(a.y - heartCenterY, a.x - heartCenterX);
-            const angleB = Math.atan2(b.y - heartCenterY, b.x - heartCenterX);
-            
-            // Сначала по расстоянию от центра, потом по углу
-            if (Math.abs(distA - distB) > 10) return distA - distB;
-            return angleA - angleB;
+            // Сначала по Y (сверху вниз)
+            if (Math.abs(a.y - b.y) > 5) return a.y - b.y;
+            // Затем по X (слева направо)
+            return a.x - b.x;
         });
 
-        // Создаём надписи с задержкой появления по очереди
+        // Создаём надписи с задержкой появления
+        const totalPoints = points.length;
+        const totalTime = 15000; // 15 секунд на появление всех
+        const delayPerPoint = totalTime / totalPoints;
+
+        const elements = [];
+
         points.forEach((p, index) => {
             const span = document.createElement('span');
             span.className = 'small-text';
@@ -129,8 +127,8 @@
             span.style.left = p.x + 'px';
             span.style.top = p.y + 'px';
 
-            // Каждая надпись появляется чуть позже предыдущей
-            const delay = index * 0.04; 
+            // Задержка зависит от порядкового номера
+            const delay = index * (delayPerPoint / 1000);
             span.style.transitionDelay = delay + 's';
 
             container.appendChild(span);
@@ -141,7 +139,7 @@
         centerTextEl.style.left = heartCenterX + 'px';
         centerTextEl.style.top = (heartCenterY - 45) + 'px';
 
-        // Запуск появления красных надписей
+        // Запуск появления
         setTimeout(() => {
             elements.forEach(el => {
                 el.style.opacity = '1';
